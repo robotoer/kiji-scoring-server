@@ -42,6 +42,7 @@
     <kiji-mapreduce.version>1.2.6</kiji-mapreduce.version>
     <kiji-model-repo.version>0.7.0</kiji-model-repo.version>
     <fake-hbase.version>0.1.5</fake-hbase.version>
+    <finagle.version>6.13.1</finagle.version>
     <jackson.version>2.3.2</jackson.version>
     <jetty.version>8.1.12.v20130726</jetty.version>
     <junit.version>4.11</junit.version>
@@ -96,6 +97,20 @@
       <groupId>org.eclipse.jetty</groupId>
       <artifactId>jetty-jsp</artifactId>
       <version>${jetty.version}</version>
+    </dependency>
+
+    <!-- Finagle Dependencies -->
+    <dependency>
+      <groupId>com.twitter</groupId>
+      <artifactId>finagle-core_${scala.version}</artifactId>
+      <version>${finagle.version}</version>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.twitter</groupId>
+      <artifactId>finagle-http_${scala.version}</artifactId>
+      <version>${finagle.version}</version>
+      <scope>compile</scope>
     </dependency>
 
     <!-- Kiji Related Dependencies -->
@@ -249,6 +264,31 @@
     </dependency>
 
     <dependency>
+      <groupId>org.apache.hadoop</groupId>
+      <artifactId>hadoop-yarn-server-tests</artifactId>
+      <version>${hadoop-common.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.hadoop</groupId>
+      <artifactId>hadoop-yarn-api</artifactId>
+      <version>${hadoop-common.version}</version>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.hadoop</groupId>
+      <artifactId>hadoop-yarn-client</artifactId>
+      <version>${hadoop-common.version}</version>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.hadoop</groupId>
+      <artifactId>hadoop-yarn-common</artifactId>
+      <version>${hadoop-common.version}</version>
+      <scope>compile</scope>
+    </dependency>
+
+    <dependency>
       <groupId>org.kiji.express</groupId>
       <artifactId>kiji-express</artifactId>
       <version>${kiji-express.version}</version>
@@ -363,22 +403,31 @@
       <plugin>
         <groupId>org.scalastyle</groupId>
         <artifactId>scalastyle-maven-plugin</artifactId>
-        <version>0.3.2</version>
-        <configuration>
-          <failOnViolation>true</failOnViolation>
-          <includeTestSourceDirectory>true</includeTestSourceDirectory>
-          <failOnWarning>false</failOnWarning>
-          <sourceDirectory>${basedir}/src/main/scala</sourceDirectory>
-          <testSourceDirectory>${basedir}/src/test/scala</testSourceDirectory>
-          <configLocation>${basedir}/src/main/scalastyle/scalastyle_config.xml</configLocation>
-        </configuration>
-        <executions>
-          <execution>
-            <goals>
-              <goal>check</goal>
-            </goals>
-          </execution>
-        </executions>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-javadoc-plugin</artifactId>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-checkstyle-plugin</artifactId>
+      </plugin>
+
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>findbugs-maven-plugin</artifactId>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-assembly-plugin</artifactId>
       </plugin>
 
       <!-- Customize the generated Eclipse project files for Scala -->
@@ -437,37 +486,6 @@
           </execution>
         </executions>
       </plugin>
-
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-compiler-plugin</artifactId>
-        <!-- compile for Java 1.6 -->
-        <configuration>
-          <source>1.6</source>
-          <target>1.6</target>
-          <encoding>UTF-8</encoding>
-        </configuration>
-      </plugin>
-
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-javadoc-plugin</artifactId>
-      </plugin>
-
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-checkstyle-plugin</artifactId>
-      </plugin>
-
-      <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>findbugs-maven-plugin</artifactId>
-      </plugin>
-
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-assembly-plugin</artifactId>
-      </plugin>
     </plugins>
   </build>
 
@@ -489,5 +507,4 @@
     <url>scm:git:git@github.com:kijiproject/kiji-scoring-server.git</url>
     <developerConnection>scm:git:git@github.com:kijiproject/kiji-scoring-server.git</developerConnection>
   </scm>
-
 </project>
