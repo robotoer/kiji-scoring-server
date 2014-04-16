@@ -142,13 +142,6 @@ public class YarnServiceManagerFactory implements ServiceManagerFactory {
     applicationsManager.submitApplication(applicationRequest);
   }
 
-  public static void main(final String[] args) throws IOException {
-    // TODO: Parse these from the command line.
-    new YarnServiceManagerFactory().launchApplicationMaster(
-        null, null, null, null, null, 0
-    );
-  }
-
   public static void test() {
     // Deploy a service (java api).
     final ServiceConfiguration serviceConfiguration = null;
