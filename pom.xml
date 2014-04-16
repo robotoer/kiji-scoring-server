@@ -42,9 +42,8 @@
     <kiji-mapreduce.version>1.2.6</kiji-mapreduce.version>
     <kiji-model-repo.version>0.7.0</kiji-model-repo.version>
     <fake-hbase.version>0.1.5</fake-hbase.version>
-    <finagle.version>6.13.1</finagle.version>
     <jackson.version>2.3.2</jackson.version>
-    <jetty.version>8.1.12.v20130726</jetty.version>
+    <jetty.version>8.1.14.v20131031</jetty.version>
     <junit.version>4.11</junit.version>
   </properties>
 
@@ -53,13 +52,11 @@
     <dependency>
       <groupId>commons-io</groupId>
       <artifactId>commons-io</artifactId>
-      <version>2.4</version>
     </dependency>
 
     <dependency>
       <groupId>org.apache.avro</groupId>
       <artifactId>avro</artifactId>
-      <version>1.7.6</version>
     </dependency>
     
     <dependency>
@@ -97,20 +94,6 @@
       <groupId>org.eclipse.jetty</groupId>
       <artifactId>jetty-jsp</artifactId>
       <version>${jetty.version}</version>
-    </dependency>
-
-    <!-- Finagle Dependencies -->
-    <dependency>
-      <groupId>com.twitter</groupId>
-      <artifactId>finagle-core_${scala.version}</artifactId>
-      <version>${finagle.version}</version>
-      <scope>compile</scope>
-    </dependency>
-    <dependency>
-      <groupId>com.twitter</groupId>
-      <artifactId>finagle-http_${scala.version}</artifactId>
-      <version>${finagle.version}</version>
-      <scope>compile</scope>
     </dependency>
 
     <!-- Kiji Related Dependencies -->

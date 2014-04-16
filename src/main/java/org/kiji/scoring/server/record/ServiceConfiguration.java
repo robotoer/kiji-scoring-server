@@ -1,4 +1,4 @@
-package org.kiji.scoring.server;
+package org.kiji.scoring.server.record;
 
 public class ServiceConfiguration {
   private final String mType;
