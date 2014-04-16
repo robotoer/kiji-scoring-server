@@ -1,12 +1,17 @@
 package org.kiji.scoring.server;
 
-import java.util.List;
+import java.util.Map;
 
 /**
  * Represents a way to retrieve the currently deployed services.
  */
 public interface ServiceDirectory {
-  List<ServiceTask<?>> getServices();
+  ServiceManager getServiceManager();
 
-  <T> ServiceTask<T> getService(final String serviceId);
+  void registerServiceManager(final ServiceManager manager);
+
+  Map<String, ServiceTask<?>> getServices();
+
+  void registerService(final String serviceId, final ServiceManager manager);
+  void registerServices(final Map<String, ServiceManager> managers);
 }

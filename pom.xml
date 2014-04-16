@@ -41,6 +41,7 @@
     <kiji-modeling.version>0.8.1</kiji-modeling.version>
     <kiji-mapreduce.version>1.2.6</kiji-mapreduce.version>
     <kiji-model-repo.version>0.7.0</kiji-model-repo.version>
+    <curator.version>2.4.1</curator.version>
     <fake-hbase.version>0.1.5</fake-hbase.version>
     <jackson.version>2.3.2</jackson.version>
     <jetty.version>8.1.14.v20131031</jetty.version>
@@ -75,6 +76,20 @@
       <groupId>com.fasterxml.jackson.module</groupId>
       <artifactId>jackson-module-scala_2.10</artifactId>
       <version>${jackson.version}</version>
+    </dependency>
+
+    <!-- ZooKeeper/Curator Dependencies -->
+    <dependency>
+      <groupId>org.apache.curator</groupId>
+      <artifactId>curator-client</artifactId>
+      <version>${curator.version}</version>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.curator</groupId>
+      <artifactId>curator-x-discovery</artifactId>
+      <version>${curator.version}</version>
+      <scope>compile</scope>
     </dependency>
 
     <!-- Jetty Dependencies -->
@@ -165,10 +180,10 @@
       <artifactId>hadoop-core</artifactId>
       <version>${hadoop.version}</version>
       <exclusions>
-        <exclusion>
-          <artifactId>jetty</artifactId>
-          <groupId>org.mortbay.jetty</groupId>
-        </exclusion>
+        <!--<exclusion>-->
+          <!--<artifactId>jetty</artifactId>-->
+          <!--<groupId>org.mortbay.jetty</groupId>-->
+        <!--</exclusion>-->
         <exclusion>
           <artifactId>servlet-api</artifactId>
           <groupId>javax.servlet</groupId>
@@ -206,10 +221,10 @@
       <artifactId>hbase</artifactId>
       <version>${hbase.version}</version>
       <exclusions>
-        <exclusion>
-          <artifactId>jetty</artifactId>
-          <groupId>org.mortbay.jetty</groupId>
-        </exclusion>
+        <!--<exclusion>-->
+          <!--<artifactId>jetty</artifactId>-->
+          <!--<groupId>org.mortbay.jetty</groupId>-->
+        <!--</exclusion>-->
         <exclusion>
           <artifactId>jackson-mapper-asl</artifactId>
           <groupId>org.codehaus.jackson</groupId>
@@ -246,12 +261,6 @@
       <scope>compile</scope>
     </dependency>
 
-    <dependency>
-      <groupId>org.apache.hadoop</groupId>
-      <artifactId>hadoop-yarn-server-tests</artifactId>
-      <version>${hadoop-common.version}</version>
-      <scope>test</scope>
-    </dependency>
     <dependency>
       <groupId>org.apache.hadoop</groupId>
       <artifactId>hadoop-yarn-api</artifactId>
@@ -314,6 +323,14 @@
       <groupId>org.kiji.schema</groupId>
       <artifactId>kiji-schema</artifactId>
       <version>${kiji-schema.version}</version>
+      <type>test-jar</type>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.hadoop</groupId>
+      <artifactId>hadoop-yarn-server-tests</artifactId>
+      <version>${hadoop-common.version}</version>
       <type>test-jar</type>
       <scope>test</scope>
     </dependency>

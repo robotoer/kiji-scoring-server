@@ -1,6 +1,7 @@
 package org.kiji.scoring.server;
 
-import java.net.URI;
+import java.io.IOException;
+import java.net.URL;
 
 import org.kiji.scoring.server.record.ServiceConfiguration;
 
@@ -10,9 +11,9 @@ import org.kiji.scoring.server.record.ServiceConfiguration;
 public interface ServiceManager {
   <T> ServiceTask<T> deploy(
       final ServiceConfiguration configuration,
-      final URI jarUri,
+      final URL jarUri,
       final int instances
-  );
+  ) throws IOException;
   void undeployService(final String type);
   void undeployService(final ServiceTask service);
   void undeployServiceInstance(final String instanceId);

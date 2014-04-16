@@ -1,6 +1,7 @@
 package org.kiji.scoring.server.yarn;
 
-import java.net.URI;
+import java.io.IOException;
+import java.net.URL;
 
 import org.kiji.scoring.server.record.ServiceConfiguration;
 import org.kiji.scoring.server.ServiceManager;
@@ -10,19 +11,21 @@ import org.kiji.scoring.server.ServiceTask;
  * Delegates calls to YarnServiceMaster via an Http pipe.
  */
 public class YarnServiceManager implements ServiceManager {
-  final private URI mMasterUri;
+  final private URL mMasterUrl;
 
-  public YarnServiceManager(final URI masterUri) {
-    mMasterUri = masterUri;
+  public YarnServiceManager(final URL masterUrl) {
+    mMasterUrl = masterUrl;
   }
 
   @Override
   public <T> ServiceTask<T> deploy(
       final ServiceConfiguration configuration,
-      final URI jarUri,
+      final URL jarUri,
       final int instances
-  ) {
-    mMasterUri.
+  ) throws IOException {
+//    HttpURLConnection.mMasterUrl.openConnection()
+//    IOUtils.toString(mMasterUrl.openStream())
+    return null;
   }
 
   @Override

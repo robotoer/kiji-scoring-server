@@ -16,4 +16,9 @@ public class YarnServiceTask<T> implements ServiceTask<T> {
   public ServiceStatus status() {
     return null;
   }
+
+  @Override
+  public String getType() {
+    return null;
+  }
 }

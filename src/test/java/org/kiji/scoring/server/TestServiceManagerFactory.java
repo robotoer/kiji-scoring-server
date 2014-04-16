@@ -1,26 +1,14 @@
 package org.kiji.scoring.server;
 
-import org.junit.After;
-import org.junit.Before;
+import java.io.IOException;
+
 import org.junit.Test;
 
 import org.kiji.scoring.server.record.ServiceManagerConfiguration;
 
 public class TestServiceManagerFactory {
-  @Before
-  public void setup() {
-    // Start MiniYarnCluster.
-    ServiceTestUtils.startMiniYarnCluster();
-  }
-
-  @After
-  public void cleanup() {
-    // Teardown MiniYarnCluster.
-    ServiceTestUtils.stopMiniYarnCluster();
-  }
-
   @Test
-  public void testStartStop() {
+  public void testStartStop() throws IOException {
     final ServiceManager manager = ServiceManagerFactory.INSTANCE.start(null);
 
     // Validate state.
@@ -38,8 +26,8 @@ public class TestServiceManagerFactory {
   }
 
   @Test
-  public void testStartOver() {
-    final ServiceManagerConfiguration managerConfiguration = new ServiceManagerConfiguration();
+  public void testStartOver() throws IOException {
+    final ServiceManagerConfiguration managerConfiguration = new ServiceManagerConfiguration(port, name, command, memory);
 
     ServiceManagerFactory.INSTANCE.start(managerConfiguration);
     ServiceManagerFactory.INSTANCE.start(managerConfiguration);

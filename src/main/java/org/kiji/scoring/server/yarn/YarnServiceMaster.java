@@ -5,7 +5,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.net.URI;
+import java.net.URL;
 import java.util.Map;
 
 import com.google.common.base.Preconditions;
@@ -29,6 +29,7 @@ import org.eclipse.jetty.server.handler.HandlerList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import org.kiji.scoring.server.ServiceTask;
 import org.kiji.scoring.server.record.ServiceConfiguration;
 import org.kiji.scoring.server.ServiceManager;
 
@@ -97,17 +98,23 @@ public class YarnServiceMaster implements ServiceManager {
   }
 
   @Override
-  public void deploy(
+  public ServiceTask deploy(
       final ServiceConfiguration configuration,
-      final URI jarUri,
+      final URL jarUri,
       final int instances
   ) {
     // Allocate new resource containers to execute the service.
+    return null;
   }
 
   @Override
   public void undeployService(final String type) {
     // Get a handle to the required resource containers to kill their corresponding service.
+  }
+
+  @Override
+  public void undeployService(final ServiceTask service) {
+    undeployService(service.getType());
   }
 
   @Override
@@ -172,7 +179,7 @@ public class YarnServiceMaster implements ServiceManager {
         }
         baseRequest.setHandled(true);
 
-        undeployService(null);
+        undeployService((String) null);
       }
     });
     handlers.addHandler(new AbstractHandler() {

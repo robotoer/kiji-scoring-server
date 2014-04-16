@@ -9,4 +9,6 @@ public interface ServiceTask<T> {
   T apply(final T argument);
 
   ServiceStatus status();
+
+  String getType();
 }

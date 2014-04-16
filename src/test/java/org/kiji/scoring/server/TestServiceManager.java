@@ -1,5 +1,7 @@
 package org.kiji.scoring.server;
 
+import java.io.IOException;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -10,12 +12,12 @@ public class TestServiceManager {
   private ServiceManager mManager;
 
   @Before
-  public void setup() {
+  public void setup() throws IOException {
     // Start MiniYarnCluster.
-    ServiceTestUtils.startMiniYarnCluster();
+//    ServiceTest.startMiniYarnCluster();
 
     // Start the ServiceManager.
-    mManager = ServiceManagerFactory.INSTANCE.start(new ServiceManagerConfiguration());
+    mManager = ServiceManagerFactory.INSTANCE.start(new ServiceManagerConfiguration(port, name, command, memory));
   }
 
   @After
@@ -24,11 +26,11 @@ public class TestServiceManager {
     ServiceManagerFactory.INSTANCE.stop(mManager);
 
     // Teardown MiniYarnCluster.
-    ServiceTestUtils.stopMiniYarnCluster();
+//    ServiceTest.stopMiniYarnCluster(null);
   }
 
   @Test
-  public void testDeployUndeploy() {
+  public void testDeployUndeploy() throws IOException {
     mManager.deploy(null, null, 0);
     mManager.deploy(null, null, 0);
 
@@ -37,14 +39,14 @@ public class TestServiceManager {
     mManager.listServiceInstances();
 
 
-    mManager.undeployService();
+    mManager.undeployService("");
 
     // Validate state.
     mManager.listServices();
     mManager.listServiceInstances();
 
 
-    mManager.undeployServiceInstance();
+    mManager.undeployServiceInstance("");
 
     // Validate state.
     mManager.listServices();
@@ -52,7 +54,7 @@ public class TestServiceManager {
   }
 
   @Test
-  public void testDeployOver() {
+  public void testDeployOver() throws IOException {
     mManager.deploy(null, null, 0);
     mManager.deploy(null, null, 0);
 
@@ -63,7 +65,7 @@ public class TestServiceManager {
 
   @Test
   public void testUndeployNonExistentService() {
-    mManager.undeployService();
+    mManager.undeployService("");
 
     // Validate state.
     mManager.listServices();
@@ -71,7 +73,7 @@ public class TestServiceManager {
   }
 
   public void testUndeployNonExistentInstance() {
-    mManager.undeployServiceInstance();
+    mManager.undeployServiceInstance("");
 
     // Validate state.
     mManager.listServices();
@@ -79,7 +81,7 @@ public class TestServiceManager {
   }
 
   @Test
-  public void testList() {
+  public void testList() throws IOException {
     mManager.deploy(null, null, 0);
     mManager.deploy(null, null, 0);
 
