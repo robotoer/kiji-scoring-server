@@ -10,7 +10,6 @@ public class ZookeeperServiceDirectory implements ServiceDirectory {
 
   @Override
   public void registerServiceManager(final ServiceManager manager) {
-    manager.getAdminUrl();
   }
 
   @Override
@@ -20,11 +19,9 @@ public class ZookeeperServiceDirectory implements ServiceDirectory {
 
   @Override
   public void registerService(final String serviceId, final ServiceManager manager) {
-
   }
 
   @Override
   public void registerServices(final Map<String, ServiceManager> managers) {
-
   }
 }

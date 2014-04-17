@@ -4,24 +4,22 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.net.InetSocketAddress;
 import java.net.URL;
-import java.util.Map;
 
-import com.google.common.base.Preconditions;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.net.NetUtils;
-import org.apache.hadoop.yarn.api.AMRMProtocol;
-import org.apache.hadoop.yarn.api.ApplicationConstants;
-import org.apache.hadoop.yarn.api.protocolrecords.RegisterApplicationMasterRequest;
-import org.apache.hadoop.yarn.api.protocolrecords.RegisterApplicationMasterResponse;
-import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
-import org.apache.hadoop.yarn.api.records.ContainerId;
+import org.apache.curator.RetryPolicy;
+import org.apache.curator.framework.CuratorFramework;
+import org.apache.curator.framework.CuratorFrameworkFactory;
+import org.apache.curator.retry.ExponentialBackoffRetry;
+import org.apache.curator.x.discovery.ServiceDiscovery;
+import org.apache.curator.x.discovery.ServiceDiscoveryBuilder;
+import org.apache.curator.x.discovery.ServiceInstance;
+import org.apache.curator.x.discovery.details.InstanceSerializer;
+import org.apache.curator.x.discovery.details.JsonInstanceSerializer;
+import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
+import org.apache.hadoop.yarn.client.api.AMRMClient;
+import org.apache.hadoop.yarn.client.api.NMClient;
+import org.apache.hadoop.yarn.client.api.async.AMRMClientAsync;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
-import org.apache.hadoop.yarn.exceptions.YarnRemoteException;
-import org.apache.hadoop.yarn.ipc.YarnRPC;
-import org.apache.hadoop.yarn.util.ConverterUtils;
-import org.apache.hadoop.yarn.util.Records;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.handler.AbstractHandler;
@@ -29,9 +27,9 @@ import org.eclipse.jetty.server.handler.HandlerList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import org.kiji.scoring.server.ServiceManager;
 import org.kiji.scoring.server.ServiceTask;
 import org.kiji.scoring.server.record.ServiceConfiguration;
-import org.kiji.scoring.server.ServiceManager;
 
 // Should be an ApplicationMaster.
 //
@@ -48,68 +46,213 @@ import org.kiji.scoring.server.ServiceManager;
 public class YarnServiceMaster implements ServiceManager {
   private static final Logger LOG = LoggerFactory.getLogger(YarnServiceMaster.class);
 
-  public YarnServiceMaster() throws YarnRemoteException {
-    // Register with ResourceManager.
-    connectToResourceManager(null, null, 0, null);
+  public static final String BASE_SERVICE_DISCOVERY_PATH = "/org/kiji/services/";
+  public static final int YARN_HEARTBEAT_INTERVAL_MS = 500;
+  private static final String CURATOR_SERVICE_NAME = "service-master";
+  private static final RetryPolicy CURATOR_RETRY_POLICY = new ExponentialBackoffRetry(1000, 3);
+
+  // Yarn fields.
+  private final AMRMClientAsync<AMRMClient.ContainerRequest> mResourceManagerClient;
+  private final NMClient mNodeManagerClient;
+
+  // Curator fields.
+  private final CuratorFramework mCuratorClient;
+  private final InstanceSerializer<ServiceMasterDetails> mJsonSerializer;
+
+  // Jetty fields.
+  private final Server mServer;
+  private final ServiceInstance<ServiceMasterDetails> mThisInstance;
+
+  public YarnServiceMaster(
+      final String masterId,
+      final String masterAddress, final int masterPort,
+      final String curatorUrl,
+      final YarnConfiguration yarnConf
+  ) throws Exception {
+    // Setup Yarn.
+    {
+      // Initialize ResourceManager and NodeManager. AMRMClientAsync is used here because it runs a
+      // heartbeat thread.
+      mResourceManagerClient = AMRMClientAsync.createAMRMClientAsync(YARN_HEARTBEAT_INTERVAL_MS, null);
+      mResourceManagerClient.init(yarnConf);
+      mResourceManagerClient.start();
+
+      // TODO: Should these be closed?
+      mNodeManagerClient = NMClient.createNMClient();
+      mNodeManagerClient.init(yarnConf);
+      mNodeManagerClient.start();
+    }
+
+
+    // Setup ServiceProvider.
+    {
+      // Setup a zookeeper connection.
+      mCuratorClient =
+          CuratorFrameworkFactory.newClient(curatorUrl, CURATOR_RETRY_POLICY);
+
+      mThisInstance = ServiceInstance
+          .<ServiceMasterDetails>builder()
+          .id(masterId)
+          .name(CURATOR_SERVICE_NAME)
+          .address(masterAddress)
+          .port(masterPort)
+          .build();
+
+      mJsonSerializer =
+          new JsonInstanceSerializer<ServiceMasterDetails>(ServiceMasterDetails.class);
+    }
+
+
+    // Setup Jetty.
+    {
+      mServer = new Server(masterPort);
+
+      final HandlerList handlers = new HandlerList();
+
+      // deploy
+      handlers.addHandler(new AbstractHandler() {
+        @Override
+        public void handle(
+            final String target,
+            final Request baseRequest,
+            final HttpServletRequest request,
+            final HttpServletResponse response
+        ) throws IOException, ServletException {
+          if (!target.equalsIgnoreCase("/deploy")) {
+            return;
+          }
+          baseRequest.setHandled(true);
+
+          deploy(null, null, 0);
+        }
+      });
+
+      // undeploy
+      handlers.addHandler(new AbstractHandler() {
+        @Override
+        public void handle(
+            final String target,
+            final Request baseRequest,
+            final HttpServletRequest request,
+            final HttpServletResponse response
+        ) throws IOException, ServletException {
+          if (!target.equalsIgnoreCase("/undeploy-service")) {
+            return;
+          }
+          baseRequest.setHandled(true);
+
+          undeployService((String) null);
+        }
+      });
+      handlers.addHandler(new AbstractHandler() {
+        @Override
+        public void handle(
+            final String target,
+            final Request baseRequest,
+            final HttpServletRequest request,
+            final HttpServletResponse response
+        ) throws IOException, ServletException {
+          if (!target.equalsIgnoreCase("/undeploy-instance")) {
+            return;
+          }
+          baseRequest.setHandled(true);
+
+          undeployServiceInstance(null);
+        }
+      });
+
+      // list
+      handlers.addHandler(new AbstractHandler() {
+        @Override
+        public void handle(
+            final String target,
+            final Request baseRequest,
+            final HttpServletRequest request,
+            final HttpServletResponse response
+        ) throws IOException, ServletException {
+          if (!target.equalsIgnoreCase("/list-services")) {
+            return;
+          }
+          baseRequest.setHandled(true);
+
+          listServices();
+        }
+      });
+      handlers.addHandler(new AbstractHandler() {
+        @Override
+        public void handle(
+            final String target,
+            final Request baseRequest,
+            final HttpServletRequest request,
+            final HttpServletResponse response
+        ) throws IOException, ServletException {
+          if (!target.equalsIgnoreCase("/list-instances")) {
+            return;
+          }
+          baseRequest.setHandled(true);
+
+          listServiceInstances();
+        }
+      });
+
+      mServer.setHandler(handlers);
+    }
   }
 
-  private void connectToResourceManager(
-      final Configuration configuration,
-      final String appMasterHostname,
-      final int appMasterRpcPort,
-      final String appMasterTrackingUrl
-  ) throws YarnRemoteException {
-    final Map<String, String> environment = System.getenv();
-    final String containerIdString = Preconditions.checkNotNull(
-        environment.get(ApplicationConstants.AM_CONTAINER_ID_ENV),
-        "ContainerId not set in the environment"
-    );
-    final ContainerId containerId = ConverterUtils.toContainerId(containerIdString);
-    final ApplicationAttemptId appAttemptID = containerId.getApplicationAttemptId();
+  private ServiceDiscovery<ServiceMasterDetails> getServiceDiscovery() {
+    return ServiceDiscoveryBuilder
+        .builder(ServiceMasterDetails.class)
+        .client(mCuratorClient)
+        .basePath(BASE_SERVICE_DISCOVERY_PATH)
+        .serializer(mJsonSerializer)
+        .thisInstance(mThisInstance)
+        .build();
+  }
 
+  public void start() throws Exception {
+    // Startup jetty.
+    mServer.start();
 
-    // Connect to the Scheduler of the ResourceManager.
-    final YarnConfiguration yarnConf = new YarnConfiguration(configuration);
-    final InetSocketAddress rmAddress =
-        NetUtils.createSocketAddr(yarnConf.get(
-            YarnConfiguration.RM_SCHEDULER_ADDRESS,
-            YarnConfiguration.DEFAULT_RM_SCHEDULER_ADDRESS
-        ));
-    LOG.info("Connecting to ResourceManager at " + rmAddress);
-    final YarnRPC rpc = YarnRPC.create(yarnConf);
-    final AMRMProtocol resourceManager =
-        (AMRMProtocol) rpc.getProxy(AMRMProtocol.class, rmAddress, configuration);
+    // Register with ResourceManager.
+    // TODO: Are these supposed to not be blank values?
+    LOG.info("Registering YarnServiceMaster...");
+    mResourceManagerClient.registerApplicationMaster("", 0, "");
 
-    // Register the AM with the RM
-    final RegisterApplicationMasterRequest appMasterRequest =
-        Records.newRecord(RegisterApplicationMasterRequest.class);
-    appMasterRequest.setApplicationAttemptId(appAttemptID);
-    appMasterRequest.setHost(appMasterHostname);
-    appMasterRequest.setRpcPort(appMasterRpcPort);
-    appMasterRequest.setTrackingUrl(appMasterTrackingUrl);
+    // Register with Curator's service discovery mechanism.
+    final ServiceDiscovery<ServiceMasterDetails> serviceDiscovery = getServiceDiscovery();
+    // Does this actually register the application master?
+    serviceDiscovery.start();
+    serviceDiscovery.close();
+  }
 
-    // The registration response is useful as it provides information about the
-    // cluster.
-    // Similar to the GetNewApplicationResponse in the client, it provides
-    // information about the min/mx resource capabilities of the cluster that
-    // would be needed by the ApplicationMaster when requesting for containers.
-    final RegisterApplicationMasterResponse response =
-        resourceManager.registerApplicationMaster(appMasterRequest);
+  public void join() throws InterruptedException {
+    mServer.join();
+  }
+
+  public void stop() throws Exception {
+    // Shutdown Jetty.
+    mServer.stop();
+
+    // Un-register with ResourceManager.
+    LOG.info("UnRegistering YarnServiceMaster...");
+    mResourceManagerClient.unregisterApplicationMaster(FinalApplicationStatus.SUCCEEDED, "", "");
   }
 
   @Override
-  public ServiceTask deploy(
+  public <T> ServiceTask<T> deploy(
       final ServiceConfiguration configuration,
       final URL jarUri,
       final int instances
   ) {
     // Allocate new resource containers to execute the service.
+    LOG.info("Received a deploy call!");
     return null;
   }
 
   @Override
   public void undeployService(final String type) {
     // Get a handle to the required resource containers to kill their corresponding service.
+    LOG.info("Received an undeploy call!");
   }
 
   @Override
@@ -120,6 +263,7 @@ public class YarnServiceMaster implements ServiceManager {
   @Override
   public void undeployServiceInstance(final String instanceId) {
     // Get a handle to the required resource containers to kill their corresponding service instance.
+    LOG.info("Received an undeploy call!");
   }
 
   @Override
@@ -127,6 +271,7 @@ public class YarnServiceMaster implements ServiceManager {
     // Dump:
     //  - Services that the ServiceManager is aware of.
     //  - Actual status of the corresponding resource containers.
+    LOG.info("Received a list call!");
   }
 
   @Override
@@ -134,110 +279,22 @@ public class YarnServiceMaster implements ServiceManager {
     // Dump:
     //  - Instances that the Service is composed of.
     //  - Actual status of the corresponding service instances.
+    LOG.info("Received a list call!");
   }
 
   // ApplicationMaster logic
   public static void main(final String[] args) throws Exception {
-    new YarnServiceMaster().listenToApi(0);
+    // TODO: Parse cli arguments.
+    final YarnConfiguration yarnConf = new YarnConfiguration();
+    final int port = 8080;
+
+    LOG.info("Starting YarnServiceMaster...");
+
+    final YarnServiceMaster serviceMaster = new YarnServiceMaster(null, null, port, null, yarnConf);
+    serviceMaster.start();
+    serviceMaster.join();
   }
 
-  private void listenToApi(final int port) throws Exception {
-    // Startup jetty.
-    final Server server = new Server(port);
-
-    final HandlerList handlers = new HandlerList();
-
-    // deploy
-    handlers.addHandler(new AbstractHandler() {
-      @Override
-      public void handle(
-          final String target,
-          final Request baseRequest,
-          final HttpServletRequest request,
-          final HttpServletResponse response
-      ) throws IOException, ServletException {
-        if (!target.equalsIgnoreCase("/deploy")) {
-          return;
-        }
-        baseRequest.setHandled(true);
-
-        deploy(null, null, 0);
-      }
-    });
-
-    // undeploy
-    handlers.addHandler(new AbstractHandler() {
-      @Override
-      public void handle(
-          final String target,
-          final Request baseRequest,
-          final HttpServletRequest request,
-          final HttpServletResponse response
-      ) throws IOException, ServletException {
-        if (!target.equalsIgnoreCase("/undeploy-service")) {
-          return;
-        }
-        baseRequest.setHandled(true);
-
-        undeployService((String) null);
-      }
-    });
-    handlers.addHandler(new AbstractHandler() {
-      @Override
-      public void handle(
-          final String target,
-          final Request baseRequest,
-          final HttpServletRequest request,
-          final HttpServletResponse response
-      ) throws IOException, ServletException {
-        if (!target.equalsIgnoreCase("/undeploy-instance")) {
-          return;
-        }
-        baseRequest.setHandled(true);
-
-        undeployServiceInstance(null);
-      }
-    });
-
-    // list
-    handlers.addHandler(new AbstractHandler() {
-      @Override
-      public void handle(
-          final String target,
-          final Request baseRequest,
-          final HttpServletRequest request,
-          final HttpServletResponse response
-      ) throws IOException, ServletException {
-        if (!target.equalsIgnoreCase("/list-services")) {
-          return;
-        }
-        baseRequest.setHandled(true);
-
-        listServices();
-      }
-    });
-    handlers.addHandler(new AbstractHandler() {
-      @Override
-      public void handle(
-          final String target,
-          final Request baseRequest,
-          final HttpServletRequest request,
-          final HttpServletResponse response
-      ) throws IOException, ServletException {
-        if (!target.equalsIgnoreCase("/list-instances")) {
-          return;
-        }
-        baseRequest.setHandled(true);
-
-        listServiceInstances();
-      }
-    });
-
-    server.setHandler(handlers);
-    server.start();
-
-
-    // Setup a heartbeat to the ResourceManager.
-
+  public static class ServiceMasterDetails {
   }
 }

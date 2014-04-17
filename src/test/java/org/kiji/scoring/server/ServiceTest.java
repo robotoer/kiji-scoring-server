@@ -1,33 +1,18 @@
 package org.kiji.scoring.server;
 
-import java.net.InetSocketAddress;
 import java.net.URL;
-import java.util.List;
 
-import com.google.common.collect.Lists;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.net.NetUtils;
-import org.apache.hadoop.yarn.api.ApplicationConstants;
-import org.apache.hadoop.yarn.api.ClientRMProtocol;
-import org.apache.hadoop.yarn.api.protocolrecords.GetNewApplicationRequest;
-import org.apache.hadoop.yarn.api.protocolrecords.GetNewApplicationResponse;
-import org.apache.hadoop.yarn.api.protocolrecords.SubmitApplicationRequest;
-import org.apache.hadoop.yarn.api.records.ApplicationId;
-import org.apache.hadoop.yarn.api.records.ApplicationSubmissionContext;
-import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
-import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
-import org.apache.hadoop.yarn.exceptions.YarnRemoteException;
-import org.apache.hadoop.yarn.ipc.YarnRPC;
 import org.apache.hadoop.yarn.server.MiniYARNCluster;
 import org.apache.hadoop.yarn.server.resourcemanager.scheduler.ResourceScheduler;
 import org.apache.hadoop.yarn.server.resourcemanager.scheduler.fifo.FifoScheduler;
-import org.apache.hadoop.yarn.util.Records;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.kiji.scoring.server.record.ServiceConfiguration;
+import org.kiji.scoring.server.record.ServiceManagerConfiguration;
+import org.kiji.scoring.server.yarn.YarnServiceManagerFactory;
 
 public class ServiceTest {
   private static final Logger LOG = LoggerFactory.getLogger(ServiceTest.class);
@@ -43,7 +28,7 @@ public class ServiceTest {
   }
 
 //  @Before
-  public void startMiniYarnCluster() {
+  public void startMiniYarnCluster() throws Exception {
     final YarnConfiguration configuration = new YarnConfiguration();
     configuration.setInt(YarnConfiguration.RM_SCHEDULER_MINIMUM_ALLOCATION_MB, 64);
     configuration.setClass(
@@ -53,7 +38,7 @@ public class ServiceTest {
     );
 
     mCluster = new MiniYARNCluster("tempTest", 10, 1, 1);
-    mCluster.init(configuration);
+    mCluster.serviceInit(configuration);
     mCluster.start();
   }
 
@@ -63,14 +48,22 @@ public class ServiceTest {
   }
 
   @Test
-  public void tempTest() throws YarnRemoteException {
-    final String applicationName = "test-yarn-application";
-    final String command = "echo hello world";
-    final int applicationMemory = 64;
+  public void tempTest() throws Exception {
+    final String appName = "test-yarn-application";
+    final String appCommand = "echo hello world";
+    final int appMemory = 64;
+    final int appPort = 8080;
+    final int appCores = 1;
 
     startMiniYarnCluster();
 
     final YarnConfiguration baseConfig = getConfig();
+//    final YarnServiceManagerFactory managerFactory = new YarnServiceManagerFactory(baseConfig);
+//
+//    final ServiceManagerConfiguration managerConfiguration =
+//        new ServiceManagerConfiguration(appName, appCommand, appMemory, appPort, appCores);
+//    final ServiceManager manager = managerFactory.start(managerConfiguration);
+//    manager.listServices();
 
     stopMiniYarnCluster();
   }

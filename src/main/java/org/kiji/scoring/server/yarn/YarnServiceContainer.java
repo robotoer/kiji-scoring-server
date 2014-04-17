@@ -13,7 +13,6 @@ import org.apache.curator.retry.ExponentialBackoffRetry;
 import org.apache.curator.x.discovery.ServiceDiscovery;
 import org.apache.curator.x.discovery.ServiceDiscoveryBuilder;
 import org.apache.curator.x.discovery.ServiceInstance;
-import org.apache.curator.x.discovery.ServiceProvider;
 import org.apache.curator.x.discovery.UriSpec;
 import org.apache.curator.x.discovery.details.JsonInstanceSerializer;
 import org.eclipse.jetty.server.Request;
@@ -24,14 +23,13 @@ import org.eclipse.jetty.servlet.ServletHandler;
 
 import org.kiji.scoring.server.ServiceTask;
 import org.kiji.scoring.server.record.ServiceStatus;
-import org.kiji.scoring.server.servlets.GenericScoringServlet;
+//import org.kiji.scoring.server.servlets.GenericScoringServlet;
 
 /**
  * Responsible for providing the score/status interfaces of a service instance within a YARN
  * container.
  */
 public class YarnServiceContainer implements ServiceTask<Object> {
-  public static final String BASE_SERVICE_DISCOVERY_PATH = "/org/kiji/services/";
   public static final String APPLY_PATH = "/apply";
 
   @Override
@@ -75,7 +73,8 @@ public class YarnServiceContainer implements ServiceTask<Object> {
 
       // apply
       final ServletHandler servletHandler = new ServletHandler();
-      servletHandler.addServletWithMapping(GenericScoringServlet.class, APPLY_PATH);
+//      servletHandler.addServletWithMapping(GenericScoringServlet.class, APPLY_PATH);
+      servletHandler.addServletWithMapping("org.kiji.scoring.server.servlets.GenericScoringServlet", APPLY_PATH);
       handlers.addHandler(servletHandler);
 
       // status
@@ -123,7 +122,7 @@ public class YarnServiceContainer implements ServiceTask<Object> {
       final ServiceDiscovery<ServiceContainerDetails> serviceDiscovery = ServiceDiscoveryBuilder
           .builder(ServiceContainerDetails.class)
           .client(client)
-          .basePath(BASE_SERVICE_DISCOVERY_PATH)
+          .basePath(YarnServiceMaster.BASE_SERVICE_DISCOVERY_PATH)
           .serializer(serializer)
           .thisInstance(thisInstance)
           .build();
