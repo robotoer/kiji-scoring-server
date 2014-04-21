@@ -44,6 +44,7 @@ import org.kiji.scoring.server.record.ServiceConfiguration;
 //  - Operations:
 //    -
 public class YarnServiceMaster implements ServiceManager {
+  public static final String YARN_SERVICE_MANAGER_JAVA_FLAGS = "-Xmx256M";
   private static final Logger LOG = LoggerFactory.getLogger(YarnServiceMaster.class);
 
   public static final String BASE_SERVICE_DISCOVERY_PATH = "/org/kiji/services/";
@@ -65,7 +66,8 @@ public class YarnServiceMaster implements ServiceManager {
 
   public YarnServiceMaster(
       final String masterId,
-      final String masterAddress, final int masterPort,
+      final String masterAddress,
+      final int masterPort,
       final String curatorUrl,
       final YarnConfiguration yarnConf
   ) throws Exception {
@@ -286,11 +288,14 @@ public class YarnServiceMaster implements ServiceManager {
   public static void main(final String[] args) throws Exception {
     // TODO: Parse cli arguments.
     final YarnConfiguration yarnConf = new YarnConfiguration();
-    final int port = 8080;
+    final String masterId = "service-master-1";
+    // TODO: Get the hostname of this machine.
+    final String masterAddress = "";
+    final int masterPort = 8080;
 
     LOG.info("Starting YarnServiceMaster...");
 
-    final YarnServiceMaster serviceMaster = new YarnServiceMaster(null, null, port, null, yarnConf);
+    final YarnServiceMaster serviceMaster = new YarnServiceMaster(masterId, masterAddress, masterPort, null, yarnConf);
     serviceMaster.start();
     serviceMaster.join();
   }

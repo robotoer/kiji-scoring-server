@@ -37,8 +37,8 @@ public class ServiceTest {
         ResourceScheduler.class
     );
 
-    mCluster = new MiniYARNCluster("tempTest", 10, 1, 1);
-    mCluster.serviceInit(configuration);
+    mCluster = new MiniYARNCluster("tempTest", 2, 1, 1);
+    mCluster.init(configuration);
     mCluster.start();
   }
 
@@ -47,23 +47,45 @@ public class ServiceTest {
     mCluster.stop();
   }
 
-  @Test
-  public void tempTest() throws Exception {
+  public static void main(final String[] args) throws Exception {
+    System.out.println(System.getProperty("java.class.path"));
+//    simple();
+  }
+
+  public static void simple(final YarnConfiguration baseConfig) throws Exception {
     final String appName = "test-yarn-application";
     final String appCommand = "echo hello world";
-    final int appMemory = 64;
+    final int appMemory = 256;
     final int appPort = 8080;
     final int appCores = 1;
 
+    final YarnServiceManagerFactory managerFactory = new YarnServiceManagerFactory(baseConfig);
+
+    final ServiceManagerConfiguration managerConfiguration =
+        new ServiceManagerConfiguration(appName, appCommand, appMemory, appPort, appCores);
+    final ServiceManager manager = managerFactory.start(managerConfiguration);
+//    manager.listServices();
+  }
+
+  @Test
+  public void tempTest() throws Exception {
+//    final String appName = "test-yarn-application";
+//    final String appCommand = "echo hello world";
+//    final int appMemory = 64;
+//    final int appPort = 8080;
+//    final int appCores = 1;
+
     startMiniYarnCluster();
 
-    final YarnConfiguration baseConfig = getConfig();
+//    final YarnConfiguration baseConfig = getConfig();
 //    final YarnServiceManagerFactory managerFactory = new YarnServiceManagerFactory(baseConfig);
 //
 //    final ServiceManagerConfiguration managerConfiguration =
 //        new ServiceManagerConfiguration(appName, appCommand, appMemory, appPort, appCores);
 //    final ServiceManager manager = managerFactory.start(managerConfiguration);
-//    manager.listServices();
+////    manager.listServices();
+
+    simple(getConfig());
 
     stopMiniYarnCluster();
   }

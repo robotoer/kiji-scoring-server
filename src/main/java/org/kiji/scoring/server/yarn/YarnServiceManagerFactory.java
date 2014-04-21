@@ -1,20 +1,33 @@
 package org.kiji.scoring.server.yarn;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.util.Collections;
+import java.util.Map;
 
+import com.google.common.collect.Maps;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.hadoop.yarn.api.records.ApplicationSubmissionContext;
 import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
+import org.apache.hadoop.yarn.api.records.LocalResource;
+import org.apache.hadoop.yarn.api.records.LocalResourceType;
+import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
 import org.apache.hadoop.yarn.api.records.Resource;
+import org.apache.hadoop.yarn.api.records.URL;
 import org.apache.hadoop.yarn.api.records.YarnApplicationState;
 import org.apache.hadoop.yarn.client.api.YarnClient;
 import org.apache.hadoop.yarn.client.api.YarnClientApplication;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
+import org.apache.hadoop.yarn.util.Apps;
+import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.hadoop.yarn.util.Records;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,10 +63,76 @@ public class YarnServiceManagerFactory implements ServiceManagerFactory {
       // Set up the container launch context for the application master
       final ContainerLaunchContext appContainerContext = Records.newRecord(ContainerLaunchContext.class);
       {
-        final String loggedCommand = String.format("%s 1>%s/stdout 2>%s/stdout", appCommand, ApplicationConstants.LOG_DIR_EXPANSION_VAR, ApplicationConstants.LOG_DIR_EXPANSION_VAR);
+        final Configuration config = mYarnClient.getConfig();
+
+        final String loggedCommand = String.format(
+//            "$JAVA_HOME/bin/java %s %s 1>%s/stdout 2>%s/stdout",
+            "${JAVA_HOME}/bin/java %s %s",
+            YarnServiceMaster.YARN_SERVICE_MANAGER_JAVA_FLAGS,
+            YarnServiceMaster.class.getName()//,
+//            appCommand,
+//            ApplicationConstants.LOG_DIR_EXPANSION_VAR,
+//            ApplicationConstants.LOG_DIR_EXPANSION_VAR
+        );
+        LOG.info("Launching service application master with command: {}", loggedCommand);
         appContainerContext.setCommands(Collections.singletonList(loggedCommand));
 
-        // TODO: Setup required resources here (jars, env vars, local files, etc.).
+        // Copy classpath of client.
+        final String classpath = System.getProperty("java.class.path");
+
+        final Map<String, LocalResource> localResources = Maps.newHashMap();
+        final Map<String, String> masterEnvVars = Maps.newHashMap();
+        for (final String classpathEntry : classpath.split(File.pathSeparator)) {
+          if (!classpathEntry.isEmpty()) {
+            final Path entryPath = new Path(classpathEntry);
+            final FileStatus entryFileStatus =
+                FileSystem.getLocal(config).getFileStatus(entryPath);
+//            LOG.info("Adding {}", entryFileStatus);
+            final URL yarnUrlFromPath = ConverterUtils.getYarnUrlFromPath(entryPath);
+            localResources.put(
+                entryPath.getName(),
+                LocalResource.newInstance(
+                    yarnUrlFromPath,
+                    LocalResourceType.FILE,
+                    LocalResourceVisibility.PUBLIC,
+                    entryFileStatus.getLen(),
+                    entryFileStatus.getModificationTime()
+                )
+            );
+            yarnUrlFromPath.setScheme("file");
+            LOG.info("Scheme {}", yarnUrlFromPath.getScheme());
+            LOG.info("Adding {}", localResources.get(entryPath.getName()));
+            // TODO: Does this help?
+            Apps.addToEnvironment(
+                masterEnvVars,
+                ApplicationConstants.Environment.CLASSPATH.name(),
+                classpathEntry.trim()
+            );
+          } else {
+            LOG.warn("Blank classpath entry found!");
+          }
+        }
+
+        final String[] yarnConfigClasspath = config.getStrings(
+            YarnConfiguration.YARN_APPLICATION_CLASSPATH,
+            YarnConfiguration.DEFAULT_YARN_APPLICATION_CLASSPATH
+        );
+        for (String classpathEntry : yarnConfigClasspath) {
+          Apps.addToEnvironment(
+              masterEnvVars,
+              ApplicationConstants.Environment.CLASSPATH.name(),
+              classpathEntry.trim()
+          );
+        }
+
+        Apps.addToEnvironment(
+            masterEnvVars,
+            ApplicationConstants.Environment.CLASSPATH.name(),
+            ApplicationConstants.Environment.PWD.$() + File.separator + "*"
+        );
+
+        appContainerContext.setLocalResources(localResources);
+        appContainerContext.setEnvironment(masterEnvVars);
       }
 
       // Finally, set-up ApplicationSubmissionContext for the application
@@ -81,9 +160,16 @@ public class YarnServiceManagerFactory implements ServiceManagerFactory {
     }
 
     System.out.println(
-        "Application " + appId + " finished with" +
-            " state " + appState +
-            " at " + appReport.getFinishTime());
+        String.format(
+            "Application %s finished with state %s at %d",
+            appId,
+            appState,
+            appReport.getFinishTime()
+        )
+    );
+  }
+
+  private void setupAppMasterEnv(Map<String, String> appMasterEnv) {
   }
 
   @Override

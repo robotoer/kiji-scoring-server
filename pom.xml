@@ -119,12 +119,12 @@
       <version>${kiji-schema.version}</version>
       <exclusions>
         <exclusion>
-          <artifactId>jetty</artifactId>
           <groupId>org.mortbay.jetty</groupId>
+          <artifactId>jetty</artifactId>
         </exclusion>
         <exclusion>
-          <artifactId>servlet-api</artifactId>
           <groupId>org.mortbay.jetty</groupId>
+          <artifactId>servlet-api</artifactId>
         </exclusion>
       </exclusions>
     </dependency>
@@ -141,36 +141,36 @@
       <version>${hadoop.version}</version>
       <exclusions>
         <exclusion>
-          <artifactId>jetty</artifactId>
           <groupId>org.mortbay.jetty</groupId>
+          <artifactId>jetty</artifactId>
         </exclusion>
         <exclusion>
-          <artifactId>servlet-api</artifactId>
           <groupId>javax.servlet</groupId>
+          <artifactId>servlet-api</artifactId>
         </exclusion>
         <exclusion>
+          <groupId>org.codehaus.jackson</groupId>
           <artifactId>jackson-mapper-asl</artifactId>
-          <groupId>org.codehaus.jackson</groupId>
         </exclusion>
         <exclusion>
+          <groupId>org.codehaus.jackson</groupId>
           <artifactId>jackson-core</artifactId>
-          <groupId>org.codehaus.jackson</groupId>
         </exclusion>
         <exclusion>
+          <groupId>org.codehaus.jackson</groupId>
           <artifactId>jackson-core-asl</artifactId>
-          <groupId>org.codehaus.jackson</groupId>
         </exclusion>
         <exclusion>
-          <artifactId>jsp-api</artifactId>
           <groupId>javax.servlet.jsp</groupId>
+          <artifactId>jsp-api</artifactId>
         </exclusion>
         <exclusion>
+          <groupId>tomcat</groupId>
           <artifactId>jasper-compiler</artifactId>
-          <groupId>tomcat</groupId>
         </exclusion>
         <exclusion>
-          <artifactId>jasper-runtime</artifactId>
           <groupId>tomcat</groupId>
+          <artifactId>jasper-runtime</artifactId>
         </exclusion>
       </exclusions>
       <scope>compile</scope>
@@ -182,28 +182,28 @@
       <version>${hadoop.version}</version>
       <exclusions>
         <!--<exclusion>-->
-          <!--<artifactId>jetty</artifactId>-->
           <!--<groupId>org.mortbay.jetty</groupId>-->
+          <!--<artifactId>jetty</artifactId>-->
         <!--</exclusion>-->
         <exclusion>
-          <artifactId>servlet-api</artifactId>
           <groupId>javax.servlet</groupId>
+          <artifactId>servlet-api</artifactId>
         </exclusion>
         <exclusion>
+          <groupId>org.codehaus.jackson</groupId>
           <artifactId>jackson-core</artifactId>
-          <groupId>org.codehaus.jackson</groupId>
         </exclusion>
         <exclusion>
+          <groupId>org.codehaus.jackson</groupId>
           <artifactId>jackson-mapper-asl</artifactId>
-          <groupId>org.codehaus.jackson</groupId>
         </exclusion>
         <exclusion>
+          <groupId>org.codehaus.jackson</groupId>
           <artifactId>jackson-core-asl</artifactId>
-          <groupId>org.codehaus.jackson</groupId>
         </exclusion>
         <exclusion>
-          <artifactId>jsp-api</artifactId>
           <groupId>javax.servlet.jsp</groupId>
+          <artifactId>jsp-api</artifactId>
         </exclusion>
         <exclusion>
           <groupId>tomcat</groupId>
@@ -226,13 +226,18 @@
           <!--<artifactId>jetty</artifactId>-->
           <!--<groupId>org.mortbay.jetty</groupId>-->
         <!--</exclusion>-->
+        <!-- Exclude this for now so that we can use cdh5. -->
         <exclusion>
-          <artifactId>jackson-mapper-asl</artifactId>
-          <groupId>org.codehaus.jackson</groupId>
+          <groupId>com.google.protobuf</groupId>
+          <artifactId>protobuf-java</artifactId>
         </exclusion>
         <exclusion>
-          <artifactId>jackson-core-asl</artifactId>
           <groupId>org.codehaus.jackson</groupId>
+          <artifactId>jackson-mapper-asl</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.codehaus.jackson</groupId>
+          <artifactId>jackson-core-asl</artifactId>
         </exclusion>
         <exclusion>
           <artifactId>servlet-api-2.5</artifactId>
