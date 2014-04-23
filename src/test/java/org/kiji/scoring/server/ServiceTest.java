@@ -48,21 +48,21 @@ public class ServiceTest {
   }
 
   public static void main(final String[] args) throws Exception {
-    System.out.println(System.getProperty("java.class.path"));
-//    simple();
+    simple(new YarnConfiguration());
   }
 
   public static void simple(final YarnConfiguration baseConfig) throws Exception {
     final String appName = "test-yarn-application";
-    final String appCommand = "echo hello world";
+//    final String appCommand = "echo hello world";
     final int appMemory = 256;
     final int appPort = 8080;
     final int appCores = 1;
+    final String curatorAddress = "localhost:2181";
 
     final YarnServiceManagerFactory managerFactory = new YarnServiceManagerFactory(baseConfig);
 
     final ServiceManagerConfiguration managerConfiguration =
-        new ServiceManagerConfiguration(appName, appCommand, appMemory, appPort, appCores);
+        new ServiceManagerConfiguration(appName, appMemory, appPort, appCores, curatorAddress);
     final ServiceManager manager = managerFactory.start(managerConfiguration);
 //    manager.listServices();
   }

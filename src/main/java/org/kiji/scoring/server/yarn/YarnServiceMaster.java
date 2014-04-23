@@ -4,8 +4,12 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.URL;
+import java.net.UnknownHostException;
 
+import com.google.common.base.Objects;
+import org.apache.commons.lang.StringUtils;
 import org.apache.curator.RetryPolicy;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
@@ -222,9 +226,13 @@ public class YarnServiceMaster implements ServiceManager {
 
     // Register with Curator's service discovery mechanism.
     final ServiceDiscovery<ServiceMasterDetails> serviceDiscovery = getServiceDiscovery();
-    // Does this actually register the application master?
-    serviceDiscovery.start();
-    serviceDiscovery.close();
+    try {
+      // Does this actually register the application master?
+      serviceDiscovery.start();
+      serviceDiscovery.registerService(mThisInstance);
+    } finally {
+      serviceDiscovery.close();
+    }
   }
 
   public void join() throws InterruptedException {
@@ -232,11 +240,20 @@ public class YarnServiceMaster implements ServiceManager {
   }
 
   public void stop() throws Exception {
+    // Unregister with Curator's service discovery mechanism.
+    final ServiceDiscovery<ServiceMasterDetails> serviceDiscovery = getServiceDiscovery();
+    try {
+      serviceDiscovery.start();
+      serviceDiscovery.unregisterService(mThisInstance);
+    } finally {
+      serviceDiscovery.close();
+    }
+
     // Shutdown Jetty.
     mServer.stop();
 
-    // Un-register with ResourceManager.
-    LOG.info("UnRegistering YarnServiceMaster...");
+    // Unregister with ResourceManager.
+    LOG.info("Unregistering YarnServiceMaster...");
     mResourceManagerClient.unregisterApplicationMaster(FinalApplicationStatus.SUCCEEDED, "", "");
   }
 
@@ -286,18 +303,72 @@ public class YarnServiceMaster implements ServiceManager {
 
   // ApplicationMaster logic
   public static void main(final String[] args) throws Exception {
-    // TODO: Parse cli arguments.
     final YarnConfiguration yarnConf = new YarnConfiguration();
-    final String masterId = "service-master-1";
-    // TODO: Get the hostname of this machine.
-    final String masterAddress = "";
-    final int masterPort = 8080;
+    final String masterAddress = getHostname();
 
-    LOG.info("Starting YarnServiceMaster...");
+    // Parse cli arguments.
+    final String masterId = args[0];
+    final int masterPort = Integer.parseInt(args[1]);
+    final String curatorAddress = args[2];
+//    final String masterId = "service-master-1";
+//    final int masterPort = 8080;
+//    final String curatorAddress = "";
 
-    final YarnServiceMaster serviceMaster = new YarnServiceMaster(masterId, masterAddress, masterPort, null, yarnConf);
+    final YarnServiceMaster serviceMaster = new YarnServiceMaster(
+        masterId,
+        masterAddress,
+        masterPort,
+        curatorAddress,
+        yarnConf
+    );
+    LOG.info("Starting %s...", serviceMaster.toString());
     serviceMaster.start();
     serviceMaster.join();
+  }
+
+  private static String getHostname() {
+    try {
+      final String result = InetAddress.getLocalHost().getHostName();
+      if (StringUtils.isNotEmpty(result)) {
+        return result;
+      }
+    } catch (UnknownHostException e) {
+      // failed;  try alternate means.
+      LOG.warn("Failed to resolve hostname from ip address. Is your DNS setup correctly?");
+    }
+
+    // try environment properties.
+    final String windowsHostname = System.getenv("COMPUTERNAME");
+    if (windowsHostname != null) {
+      return windowsHostname;
+    }
+    final String linuxHostname = System.getenv("HOSTNAME");
+    if (linuxHostname != null) {
+      return linuxHostname;
+    }
+
+    // undetermined.
+    return null;
+  }
+
+  @Override
+  public String toString() {
+    return Objects.toStringHelper(this)
+        .add("mResourceManagerClient", mResourceManagerClient)
+        .add("mNodeManagerClient", mNodeManagerClient)
+        .add("mCuratorClient", mCuratorClient)
+        .add("mJsonSerializer", mJsonSerializer)
+        .add("mServer", mServer)
+        .add("mThisInstance", mThisInstance)
+        .toString();
+  }
+
+  public static String prepareArgs(
+      final String masterName,
+      final int masterPort,
+      final String curatorAddress
+  ) {
+    return String.format("%s %d %s", masterName, masterPort, curatorAddress);
   }
 
   public static class ServiceMasterDetails {

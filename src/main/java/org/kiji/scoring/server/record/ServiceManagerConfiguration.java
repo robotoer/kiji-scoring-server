@@ -2,29 +2,27 @@ package org.kiji.scoring.server.record;
 
 public class ServiceManagerConfiguration {
   private final String mName;
-  private final String mCommand;
   private final int mMemory;
   private final int mPort;
-  private int mCores;
+  private final int mCores;
+  private final String mCuratorAddress;
 
   public ServiceManagerConfiguration(
       final String name,
-      final String command,
       final int memory,
       final int port,
-      final int cores) {
-    mPort = port;
+      final int cores,
+      final String curatorAddress
+  ) {
     mName = name;
-    mCommand = command;
     mMemory = memory;
+    mPort = port;
+    mCores = cores;
+    mCuratorAddress = curatorAddress;
   }
 
   public String getName() {
     return mName;
-  }
-
-  public String getCommand() {
-    return mCommand;
   }
 
   public int getMemory() {
@@ -37,5 +35,9 @@ public class ServiceManagerConfiguration {
 
   public int getCores() {
     return mCores;
+  }
+
+  public String getCuratorAddress() {
+    return mCuratorAddress;
   }
 }

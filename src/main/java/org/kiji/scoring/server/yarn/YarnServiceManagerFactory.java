@@ -38,6 +38,7 @@ import org.kiji.scoring.server.record.ServiceManagerConfiguration;
 
 public class YarnServiceManagerFactory implements ServiceManagerFactory {
   private static final Logger LOG = LoggerFactory.getLogger(YarnServiceManagerFactory.class);
+  public static final String APPLICATION_MASTER_NAME = "service-master-1";
 
   private YarnClient mYarnClient;
 
@@ -50,9 +51,10 @@ public class YarnServiceManagerFactory implements ServiceManagerFactory {
 
   public void launchApplicationMaster(
       final String appName,
-      final String appCommand,
       final int appMemory,
-      final int appCores
+      final int appCores,
+      final int appAdminPort,
+      final String curatorAddress
   ) throws IOException, YarnException, InterruptedException {
     // Create application via yarnClient
     final YarnClientApplication app = mYarnClient.createApplication();
@@ -65,14 +67,20 @@ public class YarnServiceManagerFactory implements ServiceManagerFactory {
       {
         final Configuration config = mYarnClient.getConfig();
 
+//        final String loggedCommand = String.format(
+////            "$JAVA_HOME/bin/java %s %s 1>%s/stdout 2>%s/stdout",
+//            "${JAVA_HOME}/bin/java %s %s",
+//            YarnServiceMaster.YARN_SERVICE_MANAGER_JAVA_FLAGS,
+//            YarnServiceMaster.class.getName()//,
+////            appCommand,
+////            ApplicationConstants.LOG_DIR_EXPANSION_VAR,
+////            ApplicationConstants.LOG_DIR_EXPANSION_VAR
+//        );
         final String loggedCommand = String.format(
-//            "$JAVA_HOME/bin/java %s %s 1>%s/stdout 2>%s/stdout",
-            "${JAVA_HOME}/bin/java %s %s",
+            "${JAVA_HOME}/bin/java %s %s %s",
             YarnServiceMaster.YARN_SERVICE_MANAGER_JAVA_FLAGS,
-            YarnServiceMaster.class.getName()//,
-//            appCommand,
-//            ApplicationConstants.LOG_DIR_EXPANSION_VAR,
-//            ApplicationConstants.LOG_DIR_EXPANSION_VAR
+            YarnServiceMaster.class.getName(),
+            YarnServiceMaster.prepareArgs(APPLICATION_MASTER_NAME, appAdminPort, curatorAddress)
         );
         LOG.info("Launching service application master with command: {}", loggedCommand);
         appContainerContext.setCommands(Collections.singletonList(loggedCommand));
@@ -100,8 +108,7 @@ public class YarnServiceManagerFactory implements ServiceManagerFactory {
                 )
             );
             yarnUrlFromPath.setScheme("file");
-            LOG.info("Scheme {}", yarnUrlFromPath.getScheme());
-            LOG.info("Adding {}", localResources.get(entryPath.getName()));
+            LOG.debug("Adding {}", localResources.get(entryPath.getName()));
             // TODO: Does this help?
             Apps.addToEnvironment(
                 masterEnvVars,
@@ -169,8 +176,7 @@ public class YarnServiceManagerFactory implements ServiceManagerFactory {
     );
   }
 
-  private void setupAppMasterEnv(Map<String, String> appMasterEnv) {
-  }
+  private void setupAppMasterEnv(Map<String, String> appMasterEnv) { }
 
   @Override
   public ServiceManager start(
@@ -178,9 +184,10 @@ public class YarnServiceManagerFactory implements ServiceManagerFactory {
   ) throws IOException, InterruptedException, YarnException {
     launchApplicationMaster(
         configuration.getName(),
-        configuration.getCommand(),
         configuration.getMemory(),
-        configuration.getCores()
+        configuration.getCores(),
+        configuration.getPort(),
+        configuration.getCuratorAddress()
     );
 
 //    return new YarnServiceManager(mYarnConf.get())
@@ -194,11 +201,9 @@ public class YarnServiceManagerFactory implements ServiceManagerFactory {
 
   @Override
   public void stop(final ServiceManager manager) {
-
   }
 
   @Override
   public void stop(final URI managerUri) {
-
   }
 }
