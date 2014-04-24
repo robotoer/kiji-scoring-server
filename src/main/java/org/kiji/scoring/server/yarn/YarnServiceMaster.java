@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.URL;
 import java.net.UnknownHostException;
+import java.util.Collection;
 
 import com.google.common.base.Objects;
 import org.apache.commons.lang.StringUtils;
@@ -48,13 +49,14 @@ import org.kiji.scoring.server.record.ServiceConfiguration;
 //  - Operations:
 //    -
 public class YarnServiceMaster implements ServiceManager {
-  public static final String YARN_SERVICE_MANAGER_JAVA_FLAGS = "-Xmx256M";
+//  public static final String YARN_SERVICE_MASTER_JAVA_FLAGS = "-Xmx256M -Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=1337";
+  public static final String YARN_SERVICE_MASTER_JAVA_FLAGS = "-Xmx256M";
   private static final Logger LOG = LoggerFactory.getLogger(YarnServiceMaster.class);
 
-  public static final String BASE_SERVICE_DISCOVERY_PATH = "/org/kiji/services/";
+  public static final String BASE_SERVICE_DISCOVERY_PATH = "/org/kiji/services";
   public static final int YARN_HEARTBEAT_INTERVAL_MS = 500;
-  private static final String CURATOR_SERVICE_NAME = "service-master";
-  private static final RetryPolicy CURATOR_RETRY_POLICY = new ExponentialBackoffRetry(1000, 3);
+  public static final String CURATOR_SERVICE_NAME = "service-master";
+  public static final RetryPolicy CURATOR_RETRY_POLICY = new ExponentialBackoffRetry(1000, 3);
 
   // Yarn fields.
   private final AMRMClientAsync<AMRMClient.ContainerRequest> mResourceManagerClient;
@@ -102,6 +104,7 @@ public class YarnServiceMaster implements ServiceManager {
           .name(CURATOR_SERVICE_NAME)
           .address(masterAddress)
           .port(masterPort)
+          .payload(new ServiceMasterDetails())
           .build();
 
       mJsonSerializer =
@@ -217,12 +220,13 @@ public class YarnServiceMaster implements ServiceManager {
 
   public void start() throws Exception {
     // Startup jetty.
-    mServer.start();
+//    mServer.start();
 
     // Register with ResourceManager.
     // TODO: Are these supposed to not be blank values?
     LOG.info("Registering YarnServiceMaster...");
     mResourceManagerClient.registerApplicationMaster("", 0, "");
+    LOG.info("Registered YarnServiceMaster...");
 
     // Register with Curator's service discovery mechanism.
     final ServiceDiscovery<ServiceMasterDetails> serviceDiscovery = getServiceDiscovery();
@@ -230,6 +234,10 @@ public class YarnServiceMaster implements ServiceManager {
       // Does this actually register the application master?
       serviceDiscovery.start();
       serviceDiscovery.registerService(mThisInstance);
+
+      final Collection<String> names = serviceDiscovery.queryForNames();
+
+      names.size();
     } finally {
       serviceDiscovery.close();
     }
@@ -321,7 +329,7 @@ public class YarnServiceMaster implements ServiceManager {
         curatorAddress,
         yarnConf
     );
-    LOG.info("Starting %s...", serviceMaster.toString());
+    LOG.info("Starting {}...", serviceMaster.toString());
     serviceMaster.start();
     serviceMaster.join();
   }

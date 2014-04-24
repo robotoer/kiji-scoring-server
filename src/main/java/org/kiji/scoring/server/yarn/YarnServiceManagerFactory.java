@@ -70,7 +70,7 @@ public class YarnServiceManagerFactory implements ServiceManagerFactory {
 //        final String loggedCommand = String.format(
 ////            "$JAVA_HOME/bin/java %s %s 1>%s/stdout 2>%s/stdout",
 //            "${JAVA_HOME}/bin/java %s %s",
-//            YarnServiceMaster.YARN_SERVICE_MANAGER_JAVA_FLAGS,
+//            YarnServiceMaster.YARN_SERVICE_MASTER_JAVA_FLAGS,
 //            YarnServiceMaster.class.getName()//,
 ////            appCommand,
 ////            ApplicationConstants.LOG_DIR_EXPANSION_VAR,
@@ -78,7 +78,7 @@ public class YarnServiceManagerFactory implements ServiceManagerFactory {
 //        );
         final String loggedCommand = String.format(
             "${JAVA_HOME}/bin/java %s %s %s",
-            YarnServiceMaster.YARN_SERVICE_MANAGER_JAVA_FLAGS,
+            YarnServiceMaster.YARN_SERVICE_MASTER_JAVA_FLAGS,
             YarnServiceMaster.class.getName(),
             YarnServiceMaster.prepareArgs(APPLICATION_MASTER_NAME, appAdminPort, curatorAddress)
         );
@@ -140,6 +140,9 @@ public class YarnServiceManagerFactory implements ServiceManagerFactory {
 
         appContainerContext.setLocalResources(localResources);
         appContainerContext.setEnvironment(masterEnvVars);
+
+        appContainerContext.setTokens();
+        mYarnClient.getAMRMToken().
       }
 
       // Finally, set-up ApplicationSubmissionContext for the application

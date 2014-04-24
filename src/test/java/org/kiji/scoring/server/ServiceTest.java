@@ -2,6 +2,11 @@ package org.kiji.scoring.server;
 
 import java.net.URL;
 
+import org.apache.curator.framework.CuratorFrameworkFactory;
+import org.apache.curator.x.discovery.ServiceDiscovery;
+import org.apache.curator.x.discovery.ServiceDiscoveryBuilder;
+import org.apache.curator.x.discovery.ServiceInstance;
+import org.apache.curator.x.discovery.details.JsonInstanceSerializer;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.server.MiniYARNCluster;
 import org.apache.hadoop.yarn.server.resourcemanager.scheduler.ResourceScheduler;
@@ -13,6 +18,7 @@ import org.slf4j.LoggerFactory;
 import org.kiji.scoring.server.record.ServiceConfiguration;
 import org.kiji.scoring.server.record.ServiceManagerConfiguration;
 import org.kiji.scoring.server.yarn.YarnServiceManagerFactory;
+import org.kiji.scoring.server.yarn.YarnServiceMaster;
 
 public class ServiceTest {
   private static final Logger LOG = LoggerFactory.getLogger(ServiceTest.class);
@@ -48,6 +54,42 @@ public class ServiceTest {
   }
 
   public static void main(final String[] args) throws Exception {
+//    // Setup ServiceProvider.
+//    {
+//      // Setup a zookeeper connection.
+//      mCuratorClient =
+//          CuratorFrameworkFactory.newClient(curatorUrl, CURATOR_RETRY_POLICY);
+//
+//      mThisInstance = ServiceInstance
+//          .<YarnServiceMaster.ServiceMasterDetails>builder()
+//          .id(masterId)
+//          .name(CURATOR_SERVICE_NAME)
+//          .address(masterAddress)
+//          .port(masterPort)
+//          .build();
+//
+//      mJsonSerializer =
+//          new JsonInstanceSerializer<YarnServiceMaster.ServiceMasterDetails>(YarnServiceMaster.ServiceMasterDetails.class);
+//    }
+//
+//    // Register with Curator's service discovery mechanism.
+//    ServiceDiscoveryBuilder
+//        .builder(YarnServiceMaster.ServiceMasterDetails.class)
+//        .client(mCuratorClient)
+//        .basePath(BASE_SERVICE_DISCOVERY_PATH)
+//        .serializer(mJsonSerializer)
+//        .thisInstance(mThisInstance)
+//        .build();
+//
+//    final ServiceDiscovery<YarnServiceMaster.ServiceMasterDetails> serviceDiscovery = getServiceDiscovery();
+//    try {
+//      // Does this actually register the application master?
+//      serviceDiscovery.start();
+//      serviceDiscovery.registerService(mThisInstance);
+//    } finally {
+//      serviceDiscovery.close();
+//    }
+
     simple(new YarnConfiguration());
   }
 
